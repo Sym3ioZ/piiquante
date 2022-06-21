@@ -6,6 +6,7 @@ const cors = require('cors');
 const app = express();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
 app.use(express.json());
 app.use(cors());
 
@@ -59,34 +60,12 @@ app.post('/api/auth/login', (req,res, next) => {
 
 // Route sauces
 app.post('/api/sauces', (req, res, next) => {
+  console.log(req);
   const json = req.body.sauce;
   console.log(json);
-  const sauceString = JSON.parse(json);
-  console.log(sauceString);
-  Sauce.findOne({ name: sauceString.name })
-    .then (sauceName => {
-      if (sauceName) {
-        return res.status(403).json({ message: "Erreur: sauce déjà enregistrée"});
-      }
-      
-      // const sauce = new Sauce({
-      //   userId: "123",
-      //   name: { type: String, required: true},
-      //   manufacturer: {type: String},
-      //   description: {type: String},
-      //   mainPepper: { type: String},
-      //   imageUrl: { type: String},
-      //   heat: { type: Number, required: true},
-      //   likes: { type: Number},
-      //   dislikes: { type: Number},
-      //   usersLiked: {type: ["String <userId>"]},
-      //   usersDisliked: {type: ["String <userId>"]},
-      // })
-      res.status(200).json({
-        
-      })
-    })
+  return res.status(400).json({ message: 'error' });
 })
+
 app.get('/api/sauces', (req, res, next) => {
   console.log('get réussi !');
 
