@@ -16,6 +16,8 @@ const app = express();
 
 app.use(express.json());
 app.use(cors());
+// Declaring static path to images
+app.use('/images', express.static(path.join(__dirname, 'images')));
 
 // Connection to MongoDB Atlas
 mongoose.connect('mongodb+srv://Sym3ioZ:Moikoisen72!@cluster0.5acqt.mongodb.net/?retryWrites=true&w=majority',
@@ -23,9 +25,6 @@ mongoose.connect('mongodb+srv://Sym3ioZ:Moikoisen72!@cluster0.5acqt.mongodb.net/
     useUnifiedTopology: true })
   .then(() => console.log('Connexion à MongoDB réussie !'))
   .catch(() => console.log('Connexion à MongoDB échouée !'));
-
-// Declaring static path to images
-app.use('/images', express.static(path.join(__dirname, 'images')));
 
 // Route signup
 app.post('/api/auth/signup', (req, res, next) => {
@@ -68,7 +67,7 @@ app.post('/api/auth/login', (req,res, next) => {
     .catch (error => res.status(500).json({ error }));
 });
 
-// Route sauces
+// Routes sauces
 
 // Route add sauce
 app.post('/api/sauces', auth, multer, (req, res, next) => {
@@ -148,6 +147,65 @@ app.put('/api/sauces/:id', auth, multer, (req, res, next) => {
     .then (() => res.status(200).json({ message: "Sauce modifiée avec succès !"} ))
     .catch (error => res.status(400).json({ error }));
   }
+});
+
+// Route like/dislike
+app.post('/api/sauces/:id/like', auth, (req, res, next) => {
+  console.log('hello');
+  Sauce.findOne({ _id: req.params.id })
+    .then (sauce => {
+      console.log('then!');
+      console.log(req.body.like);    
+      if (req.body.like == 1) {
+        let i = 0;
+        while ((i < sauce.usersLiked.length) && (sauce.usersLiked.length > 0)) {
+          if (req.body.userId == sauce.usersLiked[i]) {
+            return res.status(403).json({ message: "Unauthorized" });
+          }
+          i++;
+        }
+        sauce.usersLiked.push(req.body.userId);
+        Sauce.updateOne({ _id: req.params.id}, { likes: (sauce.likes + 1), usersLiked: sauce.usersLiked, _id: req.params.id})
+          .then (() => res.status(200).json({ message: "Sauce likée !"} ))
+          .catch (error => res.status(400).json({ error }));
+      }
+      if (req.body.like == -1) {
+        let j = 0;
+        while ((j < sauce.usersDisliked.length) && (sauce.usersDisliked.length > 0)) {
+          if (req.body.userId == sauce.usersDisliked[j]) {
+            return res.status(403).json({ message: "Unauthorized" });
+          }
+          j++;
+        }
+        sauce.usersDisliked.push(req.body.userId);
+        Sauce.updateOne({ _id: req.params.id}, { dislikes: (sauce.dislikes +1), usersDisliked: sauce.usersDisliked, _id: req.params.id})
+          .then (() => res.status(200).json({ message: "Sauce dislikée !"} ))
+          .catch (error => res.status(400).json({ error }));
+      }
+      if (req.body.like == 0) {
+        let k = 0
+        while ((k < sauce.usersLiked.length) && (sauce.usersLiked.length > 0)) {
+          if (req.body.userId == sauce.usersLiked[k]) {
+            sauce.usersLiked.splice(k, 1);
+            Sauce.updateOne({ _id: req.params.id}, { likes: (sauce.likes - 1), usersLiked: sauce.usersLiked, _id: req.params.id})
+              .then (() => res.status(200).json({ message: "OK"} ))
+              .catch (error => res.status(400).json({ error }));
+          }
+          k++;
+        }
+        let l = 0
+        while ((l < sauce.usersDisliked.length) && (sauce.usersDisliked.length > 0)) {
+          if (req.body.userId == sauce.usersDisliked[l]) {
+            sauce.usersDisliked.splice(l, 1);
+            Sauce.updateOne({ _id: req.params.id}, { dislikes: (sauce.dislikes - 1), usersDisliked: sauce.usersDisliked, _id: req.params.id})
+              .then (() => res.status(200).json({ message: "OK"} ))
+              .catch (error => res.status(400).json({ error }));
+          }
+          l++;
+        }
+      }
+    })
+    .catch(error => res.status(500).json({ error }));
 });
 
 module.exports = app;
