@@ -95,7 +95,8 @@ app.post('/api/sauces', auth, multer, (req, res, next) => {
       } else {
         return res.status(403).json({ message: "Erreur: sauce déjà enregistrée !"});
       }
-    });
+    })
+    .catch (error => res.status(500).json({ error }));
 })
 
 // Route display all sauces
@@ -124,6 +125,29 @@ app.delete('/api/sauces/:id', auth, (req, res, next) => {
       });
     })
     .catch (error => res.status(500).json({ error }));
+});
+
+// Route modify sauce
+app.put('/api/sauces/:id', auth, multer, (req, res, next) => {
+  if (req.body.sauce) {
+    Sauce.findOne({ _id: req.params.id })
+      .then (sauce => {
+        const filename = sauce.imageUrl.split('/images/')[1];
+        fs.unlink (`images/${filename}`, () => {
+          const sauceObject = JSON.parse(req.body.sauce);
+          sauceObject.imageUrl = `${req.protocol}://${req.get('host')}/images/${req.file.filename}`;
+          Sauce.updateOne({ _id: req.params.id}, { ...sauceObject, _id: req.params.id})
+            .then (() => res.status(200).json({ message: "Sauce modifiée avec succès !"} ))
+            .catch (error => res.status(400).json({ error }));
+        });
+      })
+      .catch (error => res.status(404).json({ error }));    
+  }
+  else {
+    Sauce.updateOne({ _id: req.params.id}, { ...req.body, _id: req.params.id})
+    .then (() => res.status(200).json({ message: "Sauce modifiée avec succès !"} ))
+    .catch (error => res.status(400).json({ error }));
+  }
 });
 
 module.exports = app;
