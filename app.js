@@ -9,6 +9,8 @@ const fs = require ('fs');
 const User = require ('./models/user');
 const Sauce = require ('./models/sauce');
 
+const userRoutes = require('./routes/user');
+
 const auth = require ('./middleware/auth');
 const multer = require('./middleware/multer-config');
 
@@ -27,45 +29,9 @@ mongoose.connect('mongodb+srv://Sym3ioZ:Moikoisen72!@cluster0.5acqt.mongodb.net/
   .catch(() => console.log('Connexion à MongoDB échouée !'));
 
 // Route signup
-app.post('/api/auth/signup', (req, res, next) => {
-  bcrypt.hash(req.body.password, 10)
-      .then(hash => {
-          const user = new User({
-              email: req.body.email,
-              password: hash
-          });
-          user.save()
-            .then(() => res.status(201).json({ message: "Utilisateur créé !"}))
-            .catch(error => res.status(400).json({ error }));
-      })
-      .catch(error => res.status(500).json({ error }));
-});
-
+app.post('/api/auth', userRoutes);
 // Route login
-app.post('/api/auth/login', (req,res, next) => {
-  User.findOne({ email: req.body.email })
-    .then (user => {
-      if (!user) {
-        return res.status(401).json({ error: 'Utilisateur non trouvé' });
-      }
-      bcrypt.compare(req.body.password, user.password)
-        .then (valid => {
-          if (!valid) {
-            return res.status(401).json({ error: 'Mot de passe invalide' });
-          }
-          res.status(200).json({
-            userId: user._id,
-            token: jwt.sign(
-              { userId: user._id},
-              'RANDOM_SECRET_TOKEN',
-              { expiresIn: '24h'}
-            )
-          });
-        })
-        .catch (error => res.status(500).json({ error }));
-    })
-    .catch (error => res.status(500).json({ error }));
-});
+app.use('/api/auth', userRoutes);
 
 // Routes sauces
 
@@ -151,11 +117,8 @@ app.put('/api/sauces/:id', auth, multer, (req, res, next) => {
 
 // Route like/dislike
 app.post('/api/sauces/:id/like', auth, (req, res, next) => {
-  console.log('hello');
   Sauce.findOne({ _id: req.params.id })
-    .then (sauce => {
-      console.log('then!');
-      console.log(req.body.like);    
+    .then (sauce => {  
       if (req.body.like == 1) {
         let i = 0;
         while ((i < sauce.usersLiked.length) && (sauce.usersLiked.length > 0)) {
