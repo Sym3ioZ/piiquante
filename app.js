@@ -1,5 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const sanitize = require ('express-mongo-sanitize');  // To prevent injection attacks
+require('dotenv').config();  // To use environment vars (secures sensible data such as the DB connection string)
 
 const cors = require('cors');
 const path = require('path');
@@ -9,6 +11,7 @@ const sauceRoutes = require ('./routes/sauce');
 
 const app = express();
 
+app.use(sanitize());
 app.use(express.json());
 app.use(cors());
 
@@ -16,7 +19,7 @@ app.use(cors());
 app.use('/images', express.static(path.join(__dirname, 'images')));
 
 // Connection to MongoDB Atlas
-mongoose.connect('mongodb+srv://Sym3ioZ:Moikoisen72!@cluster0.5acqt.mongodb.net/?retryWrites=true&w=majority',
+mongoose.connect(process.env.DB_CONNECTIONSTRING,
   { useNewUrlParser: true,
     useUnifiedTopology: true })
   .then(() => console.log('Connexion à MongoDB réussie !'))

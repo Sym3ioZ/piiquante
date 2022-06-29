@@ -1,4 +1,5 @@
 const multer = require('multer');
+const Sauce = require ('../models/sauce');
 
 const MIME_TYPES = {
   'image/jpg': 'jpg',
@@ -8,6 +9,7 @@ const MIME_TYPES = {
 
 let d = new Date();     
 let today = d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();  // Configuring date string to inject in image filename
+
 const storage = multer.diskStorage({
   destination: (req, file, callback) => {
     callback(null, 'images');

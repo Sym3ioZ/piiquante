@@ -3,9 +3,13 @@ const fs = require('fs');
 
 exports.addSauce = (req, res, next) =>{
     const sauceObject = JSON.parse(req.body.sauce);
+
     Sauce.findOne({ name: sauceObject.name })
-        .then (sauceName => {
-            if (!sauceName) {    // Checks if the sauce is not already in the DB
+        .then ( returnedSauce => {
+            if (returnedSauce && (returnedSauce.name == sauceObject.name) ) {
+                return res.status(401).json({ message: "Erreur: sauce déjà enregistrée à ce nom !"})
+            }
+            else {
                 const sauce = new Sauce ({   // Then creates a new sauce object
                     userId: sauceObject.userId,
                     name: sauceObject.name,
@@ -19,14 +23,14 @@ exports.addSauce = (req, res, next) =>{
                     usersLiked: [],
                     usersDisliked: [],
                 })
-                sauce.save()  // Saves the asuce object in the DB
+                sauce.save()  // Saves the sauce object in the DB
                     .then (() => res.status(201).json({ message: "Sauce enregistrée avec succès !"}))
-                    .catch (error => res.status(400).json({ error }));
-            } else {
-                return res.status(403).json({ message: "Erreur: sauce déjà enregistrée !"});
-            }
+                    .catch (error => res.status(400).json({ error }));                    
+            };
         })
-        .catch (error => res.status(500).json({ error }));
+        .catch ( error => {
+            return res.status(500).json({ error });
+        }); 
 }
 
 exports.getSauces = (req, res, next) => {
@@ -59,20 +63,77 @@ exports.modifySauce = (req, res, next) => {
         Sauce.findOne({ _id: req.params.id })
             .then (sauce => {
                 const filename = sauce.imageUrl.split('/images/')[1];
-                fs.unlink (`images/${filename}`, () => {   // Deletes previous image file, to be replaced by the new one
-                    const sauceObject = JSON.parse(req.body.sauce);  // Parses the sauce string to object
-                    sauceObject.imageUrl = `${req.protocol}://${req.get('host')}/images/${req.file.filename}`;
-                    Sauce.updateOne({ _id: req.params.id}, { ...sauceObject, _id: req.params.id})  // Updates the sauce in the DB with the values in the sauce object
-                    .then (() => res.status(200).json({ message: "Sauce modifiée avec succès !"} ))
-                    .catch (error => res.status(400).json({ error }));
-                });
+                const sauceObject = JSON.parse(req.body.sauce);  // Parses the sauce string to object
+                Sauce.find() 
+                    .then ( sauces => {
+                        let i = 0;
+                        let sauceCheck = true;
+                        while (i < sauces.length) {
+                            if (sauceObject.name == sauces[i].name) {
+                                sauceCheck = false;
+                            }
+                            i++;
+                        }
+                        if (sauceObject.name == sauce.name || sauceCheck == true) {
+                            if (req.file.filename != filename) {
+                                fs.unlink (`images/${filename}`, () => {   // Deletes previous image file, to be replaced by the new one
+                                    sauceObject.imageUrl = `${req.protocol}://${req.get('host')}/images/${req.file.filename}`;
+                                    console.log(sauceObject.imageUrl);
+                                    Sauce.updateOne({ _id: req.params.id}, { ...sauceObject, _id: req.params.id})  // Updates the sauce in the DB with the values in the sauce object
+                                    .then (() => res.status(200).json({ message: "Sauce modifiée avec succès !"} ))
+                                    .catch (error => res.status(400).json({ error }));
+                                });
+                            }
+                            else {
+                                sauceObject.imageUrl = `${req.protocol}://${req.get('host')}/images/${req.file.filename}`;
+                                    console.log(sauceObject.imageUrl);
+                                    Sauce.updateOne({ _id: req.params.id}, { ...sauceObject, _id: req.params.id})  // Updates the sauce in the DB with the values in the sauce object
+                                    .then (() => res.status(200).json({ message: "Sauce modifiée avec succès !"} ))
+                                    .catch (error => res.status(400).json({ error }));
+                            }
+                            
+                        }
+                        else {
+                            return res.status(401).json({ message: "Erreur: sauce déjà enregistrée à ce nom !"});
+                        }
+                        
+                    })
+                    .catch ( error => {
+                        return res.status(500).json({ error });
+                    });                
             })
             .catch (error => res.status(404).json({ error }));    
     }
     else {   // Means there is no attached image to update, body is already the sauce object to update the one in the DB
-        Sauce.updateOne({ _id: req.params.id}, { ...req.body, _id: req.params.id})
-            .then (() => res.status(200).json({ message: "Sauce modifiée avec succès !"} ))
-            .catch (error => res.status(400).json({ error }));
+        Sauce.findOne({ _id: req.params.id })
+            .then ( sauce => {
+                let j = 0;
+                let sauceCheck2 = true;
+                Sauce.find() 
+                    .then (sauces => {
+                        while (j < sauces.length) {
+                            if (req.body.name == sauces[j].name) {
+                                sauceCheck2 = false;
+                            }
+                            j++;
+                        }
+                        if (sauce.name == req.body.name || sauceCheck2 == true) {
+                            Sauce.updateOne({ _id: req.params.id}, { ...req.body, _id: req.params.id})
+                                .then (() => res.status(200).json({ message: "Sauce modifiée avec succès !"} ))
+                                .catch (error => res.status(400).json({ error }));
+                        }
+                        else {
+                            return res.status(401).json({ message: "Erreur: sauce déjà enregistrée à ce nom !"});
+                        }
+                    })
+                    .catch ( error => {
+                        return res.status(404).json({ error });
+                    });  
+            })
+            .catch ( error => {
+                return res.status(500).json({ error });
+            }); 
+        
     }
 }
 
